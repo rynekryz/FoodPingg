@@ -918,12 +918,7 @@ i.fa-solid {
 }
 
 .theme-divider {
-  height: 1px;
+  height: 2px;
   background: var(--md-sys-color-outline-variant);
   margin: 0;
-}
-
-#themeDivider {
-  height: 1px;
-  background: var(--md-sys-color-outline-variant);
 }
