@@ -449,18 +449,18 @@ const defaultFoods = [
   "Tomato","Potato","Onion","Spinach","Bread",
   "Pasta","Yogurt","Strawberries","Beef","Cucumber",
 
-  "Jasmine Rice","Basmati Rice","Glutinous Rice",
+  "Rice","Basmati Rice","Glutinous Rice",
   "Chicken Thighs","Chicken Wings","Whole Chicken",
-  "Mackerel","Sardines","Anchovies (Ikan Bilis)","Tuna Canned",
+  "Mackerel","Sardines","Anchovies","Tuna Canned",
   "Shrimp","Squid",
 
   "Coconut Milk","Coconut","Palm Sugar","Brown Sugar","White Sugar",
   "Salt","Cooking Oil","Palm Oil","Butter","Margarine",
 
   "Garlic","Ginger","Turmeric","Lemongrass","Galangal",
-  "Chili","Bird's Eye Chili","Kaffir Lime Leaves","Pandan Leaves",
+  "Chili","Lime Leaves","Pandan Leaves",
 
-  "Soy Sauce","Sweet Soy Sauce (Kicap Manis)","Oyster Sauce","Fish Sauce","Chili Sauce","Ketchup",
+  "Soy Sauce","Sweet Soy Sauce","Oyster Sauce","Fish Sauce","Chili Sauce","Ketchup",
   "Curry Powder","Sambal Paste",
 
   "Kangkung","Kailan","Long Beans","Okra","Eggplant","Cabbage",
@@ -761,21 +761,23 @@ function greetUser() {
   else if (hour < 21) greeting = 'Good Evening';
   else greeting = 'Good Night';
 
-  const greetText = username ? `${greeting}, ${username}!` : `${greeting}!`;
+  const greetText = username 
+    ? `${greeting},<br>${username}!` 
+    : `${greeting}!`;
 
   setTimeout(() => {
     h1.style.transition = 'opacity 0.5s ease';
     h1.style.opacity = '0';
 
     setTimeout(() => {
-      h1.textContent = greetText;
+      h1.innerHTML = greetText;
       h1.style.opacity = '1';
 
       setTimeout(() => {
         h1.style.opacity = '0';
 
         setTimeout(() => {
-          h1.textContent = 'FoodPing';
+          h1.innerHTML = 'FoodPing';
           h1.style.opacity = '1';
         }, 500);
 
@@ -783,6 +785,178 @@ function greetUser() {
     }, 500);
 
   }, 2000);
+}
+
+// themes
+
+const themes = {
+  strawberry: {
+    name: 'Strawberry Cupcake',
+    '--md-sys-color-primary':              'rgb(240, 182, 193)',
+    '--md-sys-color-on-primary':           'rgb(255, 255, 255)',
+    '--md-sys-color-primary-container':    'rgb(255, 210, 220)',
+    '--md-sys-color-on-primary-container': 'rgb(90, 35, 55)',
+    '--md-sys-color-background':           'rgb(255, 245, 248)',
+    '--md-sys-color-on-background':        'rgb(120, 60, 80)',
+    '--md-sys-color-surface':              'rgb(255, 245, 248)',
+    '--md-sys-color-on-surface':           'rgb(120, 60, 80)',
+    '--md-sys-color-outline':              'rgb(255, 182, 193)',
+    '--md-sys-color-surface-container':    'rgb(255, 230, 240)',
+    '--md-sys-color-scrim':                'rgba(0, 0, 0, 0.08)',
+    '--md-sys-shadow-settings-icon':       '0 2px 6px rgba(255, 105, 180, 0.2)',
+    '--md-sys-shadow-switch-thumb':        '0 2px 4px rgba(255, 105, 180, 0.15)',
+    '--md-sys-shadow-modal':               '0 8px 32px rgba(0, 0, 0, 0.12)',
+     '--md-sys-color-input-border':     'rgba(255, 210, 220, 0.8)',
+     '--md-sys-color-input-background': 'rgb(255, 240, 246)',
+     '--md-sys-shadow-home-card':       '0 0 0 2px rgba(240, 182, 193, 0.15)',
+  },
+
+  white: {
+    name: 'Steamed Bun',
+    '--md-sys-color-primary':              'rgb(180, 180, 180)',
+    '--md-sys-color-on-primary':           'rgb(255, 255, 255)',
+    '--md-sys-color-primary-container':    'rgb(220, 220, 220)',
+    '--md-sys-color-on-primary-container': 'rgb(40, 40, 40)',
+    '--md-sys-color-background':           'rgb(250, 250, 250)',
+    '--md-sys-color-on-background':        'rgb(50, 50, 50)',
+    '--md-sys-color-surface':              'rgb(250, 250, 250)',
+    '--md-sys-color-on-surface':           'rgb(50, 50, 50)',
+    '--md-sys-color-outline':              'rgb(210, 210, 210)',
+    '--md-sys-color-surface-container':    'rgb(238, 238, 238)',
+    '--md-sys-color-scrim':                'rgba(0, 0, 0, 0.08)',
+    '--md-sys-shadow-settings-icon':       '0 2px 6px rgba(100, 100, 100, 0.2)',
+    '--md-sys-shadow-switch-thumb':        '0 2px 4px rgba(100, 100, 100, 0.15)',
+    '--md-sys-shadow-modal':               '0 8px 32px rgba(0, 0, 0, 0.10)',
+    '--md-sys-color-input-border':     'rgba(210, 210, 210, 0.8)',
+    '--md-sys-color-input-background': 'rgb(248, 248, 248)',
+    '--md-sys-shadow-home-card':       '0 0 0 2px rgba(180, 180, 180, 0.15)',
+  },
+
+  mint: {
+    name: 'Mint Breeze',
+    '--md-sys-color-primary':              'rgb(170, 230, 210)',
+    '--md-sys-color-on-primary':           'rgb(0, 60, 50)',
+    '--md-sys-color-primary-container':    'rgb(210, 245, 235)',
+    '--md-sys-color-on-primary-container': 'rgb(0, 80, 70)',
+    '--md-sys-color-background':           'rgb(245, 255, 252)',
+    '--md-sys-color-on-background':        'rgb(40, 70, 65)',
+    '--md-sys-color-surface':              'rgb(245, 255, 252)',
+    '--md-sys-color-on-surface':           'rgb(40, 70, 65)',
+    '--md-sys-color-outline':              'rgb(180, 220, 210)',
+    '--md-sys-color-surface-container':    'rgb(230, 250, 245)',
+    '--md-sys-color-scrim':                'rgba(0, 0, 0, 0.08)',
+    '--md-sys-shadow-settings-icon':       '0 2px 6px rgba(0, 150, 120, 0.2)',
+    '--md-sys-shadow-switch-thumb':        '0 2px 4px rgba(0, 150, 120, 0.15)',
+    '--md-sys-shadow-modal':               '0 8px 32px rgba(0, 0, 0, 0.10)',
+    '--md-sys-color-input-border':     'rgba(180, 220, 210, 0.8)',
+    '--md-sys-color-input-background': 'rgb(240, 253, 250)',
+    '--md-sys-shadow-home-card':       '0 0 0 2px rgba(170, 230, 210, 0.15)',
+  },
+
+  coco: {
+    name: 'Coco Cream',
+    '--md-sys-color-primary':              'rgb(210, 180, 140)',
+    '--md-sys-color-on-primary':           'rgb(60, 40, 20)',
+    '--md-sys-color-primary-container':    'rgb(240, 220, 190)',
+    '--md-sys-color-on-primary-container': 'rgb(80, 55, 30)',
+    '--md-sys-color-background':           'rgb(255, 250, 240)',
+    '--md-sys-color-on-background':        'rgb(80, 60, 40)',
+    '--md-sys-color-surface':              'rgb(255, 250, 240)',
+    '--md-sys-color-on-surface':           'rgb(80, 60, 40)',
+    '--md-sys-color-outline':              'rgb(220, 200, 170)',
+    '--md-sys-color-surface-container':    'rgb(245, 235, 220)',
+    '--md-sys-color-scrim':                'rgba(0, 0, 0, 0.08)',
+    '--md-sys-shadow-settings-icon':       '0 2px 6px rgba(160, 120, 60, 0.2)',
+    '--md-sys-shadow-switch-thumb':        '0 2px 4px rgba(160, 120, 60, 0.15)',
+    '--md-sys-shadow-modal':               '0 8px 32px rgba(0, 0, 0, 0.10)',
+    '--md-sys-color-input-border':     'rgba(220, 200, 170, 0.8)',
+    '--md-sys-color-input-background': 'rgb(255, 252, 245)',
+    '--md-sys-shadow-home-card':       '0 0 0 2px rgba(210, 180, 140, 0.15)',
+  },
+
+  void: {
+    name: 'The Void',
+    '--md-sys-color-primary':              'rgb(200, 200, 200)',
+    '--md-sys-color-on-primary':           'rgb(0, 0, 0)',
+    '--md-sys-color-primary-container':    'rgb(60, 60, 60)',
+    '--md-sys-color-on-primary-container': 'rgb(240, 240, 240)',
+    '--md-sys-color-background':           'rgb(18, 18, 18)',
+    '--md-sys-color-on-background':        'rgb(230, 230, 230)',
+    '--md-sys-color-surface':              'rgb(18, 18, 18)',
+    '--md-sys-color-on-surface':           'rgb(230, 230, 230)',
+    '--md-sys-color-outline':              'rgb(90, 90, 90)',
+    '--md-sys-color-surface-container':    'rgb(32, 32, 32)',
+    '--md-sys-color-scrim':                'rgba(0, 0, 0, 0.08)',
+    '--md-sys-shadow-settings-icon':       '0 2px 6px rgba(0, 0, 0, 0.5)',
+    '--md-sys-shadow-switch-thumb':        '0 2px 4px rgba(0, 0, 0, 0.4)',
+    '--md-sys-shadow-modal':               '0 8px 32px rgba(0, 0, 0, 0.5)',
+    '--md-sys-color-input-border':     'rgba(90, 90, 90, 0.8)',
+    '--md-sys-color-input-background': 'rgb(25, 25, 25)',
+    '--md-sys-shadow-home-card':       '0 0 0 2px rgba(200, 200, 200, 0.08)',
+  }
+};
+
+function applyTheme(key) {
+  haptic(20);
+  const theme = themes[key];
+  if (!theme) return;
+
+  const currentTheme = localStorage.getItem('theme') || 'strawberry';
+  const voidInvolved = key === 'void' || currentTheme === 'void';
+  const duration = voidInvolved ? 0 : 350;
+
+  document.body.style.setProperty('--theme-transition-duration', `${duration}ms`);
+  document.body.classList.add('theme-transitioning');
+  document.body.style.willChange = 'background-color, color';
+
+  Object.entries(theme).forEach(([prop, val]) => {
+    if (prop.startsWith('--')) document.body.style.setProperty(prop, val);
+  });
+
+  setTimeout(() => {
+    document.body.classList.remove('theme-transitioning');
+    document.body.style.willChange = 'auto';
+  }, duration + 30);
+
+  localStorage.setItem('theme', key);
+  document.getElementById('themeDisplay').textContent = theme.name;
+  document.querySelectorAll('.theme-check').forEach(el => el.classList.remove('visible'));
+  document.getElementById(`check-${key}`)?.classList.add('visible');
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'strawberry';
+  applyTheme(saved);
+}
+
+function openThemeModal() {
+  haptic(32);
+  const modal = document.getElementById('themeModal');
+  const box   = document.getElementById('themeBox');
+  const backdrop = document.getElementById('themeBackdrop');
+
+  modal.style.display = 'flex';
+  box.style.animation      = 'alertPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+  backdrop.style.animation = 'alertFadeIn 0.32s ease forwards';
+
+  const saved = localStorage.getItem('theme') || 'strawberry';
+  document.querySelectorAll('.theme-check').forEach(el => el.classList.remove('visible'));
+  document.getElementById(`check-${saved}`)?.classList.add('visible');
+}
+
+function closeThemeModal() {
+  haptic(10);
+  const box      = document.getElementById('themeBox');
+  const backdrop = document.getElementById('themeBackdrop');
+
+  box.style.animation      = 'alertPopOut 0.2s ease forwards';
+  backdrop.style.animation = 'alertFadeOut 0.2s ease forwards';
+
+  setTimeout(() => {
+    document.getElementById('themeModal').style.display = 'none';
+    box.style.animation      = '';
+    backdrop.style.animation = '';
+  }, 200);
 }
 
 // init
@@ -847,3 +1021,5 @@ document.getElementById('cloudIdDisplay').textContent = cloudId ? 'Set' : 'Not s
 });
 
 greetUser();
+
+initTheme()
