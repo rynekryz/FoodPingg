@@ -137,11 +137,6 @@
                         <span class="settings-row-value" id="cloudIdDisplay">Not set</span>
                         <span class="material-symbols-outlined settings-chevron">chevron_right</span>
                      </div>
-                     <div class="settings-divider"></div>
-                     <div class="settings-row" onclick="confirmReset()">
-                        <span class="material-symbols-outlined settings-icon">delete_forever</span>
-                        <span class="settings-row-label settings-row-danger">Reset All Data</span>
-                     </div>
                   </div>
                </div>
                <div class="settings-group">
@@ -179,6 +174,30 @@
                      <div class="settings-row" onclick="openResetLearningModal()">
                         <span class="material-symbols-outlined settings-icon">delete_forever</span>
                         <span class="settings-row-label settings-row-danger">Forget everything</span>
+                        <span class="material-symbols-outlined settings-chevron">chevron_right</span>
+                     </div>
+                  </div>
+               </div>
+               <div class="settings-group">
+                  <div class="settings-group-label">DATA MANAGEMENT</div>
+                  <div class="settings-card">
+                     <div class="settings-divider"></div>
+                     <div class="settings-row" id="backupBtn">
+                        <span class="material-symbols-outlined settings-icon">backup</span>
+                        <span class="settings-row-label settings-row-danger">Backup</span>
+                        <span class="material-symbols-outlined settings-chevron">chevron_right</span>
+                     </div>
+                     <div class="settings-divider"></div>
+                     <div class="settings-row" id="restoreBtn">
+                        <span class="material-symbols-outlined settings-icon">restore</span>
+                        <span class="settings-row-label settings-row-danger">Restore</span>
+                        <span class="material-symbols-outlined settings-chevron">chevron_right</span>
+                     </div>
+                     <div class="settings-divider"></div>
+                     <div class="settings-row" onclick="confirmReset()">
+                        <span class="material-symbols-outlined settings-icon">delete_forever</span>
+                        <span class="settings-row-label settings-row-danger">Reset All Data</span>
+                        <span class="material-symbols-outlined settings-chevron">error</span>
                      </div>
                   </div>
                </div>
