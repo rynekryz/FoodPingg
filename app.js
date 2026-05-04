@@ -913,6 +913,13 @@ function applyTheme(key) {
     if (prop.startsWith('--')) document.body.style.setProperty(prop, val);
   });
 
+  const surfaceContainer = theme['--md-sys-color-surface-container'];
+  document.querySelectorAll('meta[name="theme-color"]').forEach(el => {
+    el.setAttribute('content', surfaceContainer);
+  });
+  document.querySelector('meta[name="msapplication-navbutton-color"]')?.setAttribute('content', surfaceContainer);
+  document.querySelector('meta[name="msapplication-TileColor"]')?.setAttribute('content', surfaceContainer);
+
   setTimeout(() => {
     document.body.classList.remove('theme-transitioning');
     document.body.style.willChange = 'auto';
