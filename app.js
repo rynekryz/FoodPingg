@@ -93,36 +93,55 @@ function haptic(pattern = 32) {
   navigator.vibrate(pattern);
 }
 
-function vibrate(ms) {
-  haptic(ms);
-}
+const vibrate = haptic;
 
 document.querySelectorAll('#cloudUrlActions button, #wifiActions button, #themeActions button, #fontActions button, #creditsActions button').forEach(btn => {
   btn.addEventListener('click', () => haptic(32));
 });
 
+function openModal({ modalId, boxId, backdropId, duration = 350, hapticMs = 0 }) {
+  if (hapticMs) haptic(hapticMs);
+  const modal = document.getElementById(modalId);
+  const box = document.getElementById(boxId);
+  const backdrop = document.getElementById(backdropId);
+
+  modal.style.display = 'flex';
+  box.style.animation = '';
+  backdrop.style.animation = '';
+  requestAnimationFrame(() => {
+    box.style.animation = `alertPopIn ${duration}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
+    backdrop.style.animation = 'alertFadeIn 0.25s ease forwards';
+  });
+}
+
+function closeModal({ modalId, boxId, backdropId, duration = 200, useHaptic = true }) {
+  if (useHaptic) haptic(32);
+  const modal = document.getElementById(modalId);
+  const box = document.getElementById(boxId);
+  const backdrop = document.getElementById(backdropId);
+
+  box.style.animation = `alertPopOut ${duration}ms ease forwards`;
+  backdrop.style.animation = `alertFadeOut ${duration}ms ease forwards`;
+
+  setTimeout(() => {
+    modal.style.display = 'none';
+    box.style.animation = '';
+    backdrop.style.animation = '';
+  }, duration);
+}
+
 // alert
 
 function closeAlert() {
-  const box = document.getElementById('customAlertBox');
-  const backdrop = document.getElementById('customAlertBackdrop');
-  const wrapper = document.getElementById('customAlert');
-  haptic(10);
-  box.style.animation = 'alertPopOut 0.2s ease forwards';
-  backdrop.style.animation = 'alertFadeOut 0.2s ease forwards';
+  closeModal({ modalId: 'customAlert', boxId: 'customAlertBox', backdropId: 'customAlertBackdrop' });
   setTimeout(() => {
-    wrapper.style.display = 'none';
     document.getElementById('customAlertTitle').textContent = 'FoodPing';
     document.getElementById('customAlertActions').innerHTML = '<button id="customAlertBtn">OK</button>';
   }, 200);
 }
 
 function openAlert({ title = 'FoodPing', msg, buttons }) {
-  const wrapper = document.getElementById('customAlert');
-  const box = document.getElementById('customAlertBox');
-  const backdrop = document.getElementById('customAlertBackdrop');
   const actions = document.getElementById('customAlertActions');
-
   document.getElementById('customAlertTitle').textContent = title;
   document.getElementById('customAlertMsg').textContent = msg;
   actions.innerHTML = '';
@@ -142,13 +161,7 @@ function openAlert({ title = 'FoodPing', msg, buttons }) {
     actions.appendChild(btn);
   });
 
-  wrapper.style.display = 'flex';
-  box.style.animation = 'none';
-  backdrop.style.animation = 'none';
-  requestAnimationFrame(() => {
-    box.style.animation = 'alertPopIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards';
-    backdrop.style.animation = 'alertFadeIn 0.25s ease forwards';
-  });
+  openModal({ modalId: 'customAlert', boxId: 'customAlertBox', backdropId: 'customAlertBackdrop' });
 }
 
 function showAlert(msg) {
@@ -165,9 +178,7 @@ function confirmReset() {
     buttons: [
       { label: 'Cancel', subtle: true },
       {
-        label: 'Reset',
-        bold: true,
-        danger: true,
+        label: 'Reset', bold: true, danger: true,
         action: () => {
           haptic([30, 50, 30]);
           localStorage.clear();
@@ -185,13 +196,7 @@ function confirmReset() {
 // idk me forgot but dont touch
 
 function buildDrum(el, items, selectedIndex) {
-  el.innerHTML = '';
-  items.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'drum-item';
-    div.textContent = item;
-    el.appendChild(div);
-  });
+  el.innerHTML = items.map(item => `<div class="drum-item">${item}</div>`).join('');
   setTimeout(() => { el.scrollTop = selectedIndex * 44; }, 50);
 }
 
@@ -209,7 +214,7 @@ function openTimePicker() {
   const minute = parseInt(parts[1]);
   const ampm = parts[2] || 'AM';
 
-  buildDrum(document.getElementById('hourDrum'), Array.from({length: 12}, (_, i) => String(i + 1)), hour - 1);
+  buildDrum(document.getElementById('hourDrum'), Array.from({length: 12}, (_, i) => i + 1), hour - 1);
   buildDrum(document.getElementById('minuteDrum'), Array.from({length: 60}, (_, i) => String(i).padStart(2, '0')), minute);
   buildDrum(document.getElementById('ampmDrum'), ['AM', 'PM'], ampm === 'AM' ? 0 : 1);
 
@@ -218,8 +223,8 @@ function openTimePicker() {
   const backdrop = document.getElementById('timePickerBackdrop');
 
   picker.style.display = 'flex';
-  sheet.style.animation = 'none';
-  backdrop.style.animation = 'none';
+  sheet.style.animation = '';
+  backdrop.style.animation = '';
   requestAnimationFrame(() => {
     sheet.style.animation = 'sheetSlideUp 0.4s cubic-bezier(0.34,1.2,0.64,1) forwards';
     backdrop.style.animation = 'alertFadeIn 0.25s ease forwards';
@@ -227,7 +232,7 @@ function openTimePicker() {
 }
 
 function closeTimePicker(save) {
-  haptic(10);
+  haptic(20);
   const sheet = document.getElementById('timePickerSheet');
   const backdrop = document.getElementById('timePickerBackdrop');
   const picker = document.getElementById('timePicker');
@@ -252,32 +257,23 @@ function openDatePicker() {
   document.getElementById('datePicker').style.display = 'flex';
 
   const now = new Date();
-  const days = Array.from({length: 31}, (_, i) => String(i + 1).padStart(2, '0'));
   const months = [
     {label:'Jan',value:'01'},{label:'Feb',value:'02'},{label:'Mar',value:'03'},
     {label:'Apr',value:'04'},{label:'May',value:'05'},{label:'Jun',value:'06'},
     {label:'Jul',value:'07'},{label:'Aug',value:'08'},{label:'Sep',value:'09'},
     {label:'Oct',value:'10'},{label:'Nov',value:'11'},{label:'Dec',value:'12'}
   ];
-  const years = Array.from({length: 6}, (_, i) => String(now.getFullYear() + i).slice(-2));
 
-  fillDrum('dayScroll', days, now.getDate() - 1);
+  fillDrum('dayScroll', Array.from({length: 31}, (_, i) => String(i + 1).padStart(2, '0')), now.getDate() - 1);
   fillDrum('monthScroll', months, now.getMonth());
-  fillDrum('yearScroll', years, 0);
+  fillDrum('yearScroll', Array.from({length: 6}, (_, i) => String(now.getFullYear() + i).slice(-2)), 0);
 }
 
 function fillDrum(id, items, selectedIndex) {
   const scroll = document.getElementById(id);
-  scroll.innerHTML = '';
-
-  items.forEach(val => {
-    const div = document.createElement('div');
-    div.className = 'drum-item';
-    div.textContent = val.label ?? val;
-    div.dataset.value = val.value ?? val;
-    scroll.appendChild(div);
-  });
-
+  scroll.innerHTML = items.map(val =>
+    `<div class="drum-item" data-value="${val.value ?? val}">${val.label ?? val}</div>`
+  ).join('');
   setTimeout(() => { scroll.scrollTop = selectedIndex * 44; }, 0);
 }
 
@@ -289,10 +285,8 @@ function getSelectedDrum(id) {
 }
 
 function confirmDate() {
-  const day = getSelectedDrum('dayScroll');
-  const month = getSelectedDrum('monthScroll');
-  const year = getSelectedDrum('yearScroll');
-  document.getElementById('expiryDate').value = `${day}/${month}/${year}`;
+  document.getElementById('expiryDate').value =
+    `${getSelectedDrum('dayScroll')}/${getSelectedDrum('monthScroll')}/${getSelectedDrum('yearScroll')}`;
   closeDatePicker();
 }
 
@@ -311,25 +305,16 @@ function saveFoods(foods) {
 }
 
 function parseDate(dateStr) {
-  const parts = dateStr.split('/');
-  let year = parseInt(parts[2]);
-  if (year < 100) year += 2000;
-  return new Date(year, parseInt(parts[1]) - 1, parseInt(parts[0]));
+  const [d, m, y] = dateStr.split('/');
+  return new Date(parseInt(y) + (parseInt(y) < 100 ? 2000 : 0), parseInt(m) - 1, parseInt(d));
 }
 
 function addFood() {
   const name = document.getElementById('foodName').value.trim();
   const date = document.getElementById('expiryDate').value.trim();
 
-  if (!name || !date) {
-    showAlert('Please enter the name and expiry date!');
-    return;
-  }
-
-  if (date.split('/').length !== 3) {
-    showAlert('Date format must be DD/MM/YY');
-    return;
-  }
+  if (!name || !date) { showAlert('Please enter the name and expiry date!'); return; }
+  if (date.split('/').length !== 3) { showAlert('Date format must be DD/MM/YY'); return; }
 
   haptic([30, 40, 30]);
 
@@ -337,7 +322,6 @@ function addFood() {
   foods.push({ name, date });
   saveFoods(foods);
   renderTable();
-
   cloudSync?.();
 
   document.getElementById('foodName').value = '';
@@ -357,20 +341,13 @@ function renderTable() {
   const card = table.closest('.card');
   let emptyMsg = document.getElementById('emptyMsg');
 
-  if (foods.length === 0) {
+  if (!foods.length) {
     if (card) card.style.display = 'none';
     if (!emptyMsg) {
       emptyMsg = document.createElement('div');
       emptyMsg.id = 'emptyMsg';
       emptyMsg.textContent = 'Nothing here';
-      emptyMsg.style.cssText = `
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        opacity: 0.4;
-        font-size: 16px;
-      `;
+      emptyMsg.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.4;font-size:16px;';
       document.getElementById('logs').appendChild(emptyMsg);
     }
     emptyMsg.style.display = 'block';
@@ -380,9 +357,15 @@ function renderTable() {
   if (card) card.style.display = '';
   if (emptyMsg) emptyMsg.style.display = 'none';
 
-
   foods.forEach((food, index) => {
-    const diffDays = Math.ceil((parseDate(food.date) - now) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil((parseDate(food.date) - now) / 86400000);
+    const [color, icon, label] = diffDays > 3
+      ? ['#7bc99a', 'fa-circle-check', `${diffDays} days remaining`]
+      : diffDays > 0
+        ? ['#f0b97a', 'fa-circle-exclamation', `${diffDays} days remaining`]
+        : diffDays === 0
+          ? ['#f28b8b', 'fa-circle-xmark', 'Expired Today']
+          : ['#f28b8b', 'fa-circle-xmark', 'Expired'];
 
     const dataRow = table.insertRow();
     dataRow.className = 'data-row';
@@ -390,25 +373,8 @@ function renderTable() {
     dataRow.insertCell(1).textContent = food.date;
 
     const statusCell = dataRow.insertCell(2);
-statusCell.style.cssText = 'display: flex; align-items: center; gap: 0.4rem; justify-content: flex-end;';
-
-if (diffDays > 3) {
-  statusCell.innerHTML = `
-    <span style="color: #7bc99a; text-align: right; max-width: 80px;">${diffDays} days remaining</span>
-    <i class="fa-solid fa-circle-check" style="color: #7bc99a; flex-shrink: 0; align-self: center;"></i>`;
-} else if (diffDays > 0) {
-  statusCell.innerHTML = `
-    <span style="color: #f0b97a; text-align: right; max-width: 80px;">${diffDays} days remaining</span>
-    <i class="fa-solid fa-circle-exclamation" style="color: #f0b97a; flex-shrink: 0; align-self: center;"></i>`;
-} else if (diffDays === 0) {
-  statusCell.innerHTML = `
-    <span style="color: #f28b8b; text-align: right; max-width: 80px;">Expired Today</span>
-    <i class="fa-solid fa-circle-xmark" style="color: #f28b8b; flex-shrink: 0; align-self: center;"></i>`;
-} else {
-  statusCell.innerHTML = `
-    <span style="color: #f28b8b; text-align: right; max-width: 80px;">Expired</span>
-    <i class="fa-solid fa-circle-xmark" style="color: #f28b8b; flex-shrink: 0; align-self: center;"></i>`;
-}
+    statusCell.style.cssText = 'display:flex;align-items:center;gap:0.4rem;justify-content:flex-end;';
+    statusCell.innerHTML = `<span style="color:${color};text-align:right;max-width:80px;">${label}</span><i class="fa-solid ${icon}" style="color:${color};flex-shrink:0;align-self:center;"></i>`;
 
     const btnRow = table.insertRow();
     btnRow.className = 'btn-row';
@@ -418,14 +384,9 @@ if (diffDays > 3) {
     const delBtn = document.createElement('button');
     delBtn.textContent = 'Delete';
     Object.assign(delBtn.style, {
-      width: '100%',
-      backgroundColor: 'var(--md-sys-color-primary)',
-      color: 'var(--md-sys-color-on-primary)',
-      border: 'none',
-      borderRadius: '16px',
-      padding: '8px',
-      cursor: 'pointer',
-      marginBottom: '4px'
+      width: '100%', backgroundColor: 'var(--md-sys-color-primary)',
+      color: 'var(--md-sys-color-on-primary)', border: 'none',
+      borderRadius: '16px', padding: '8px', cursor: 'pointer', marginBottom: '4px'
     });
     delBtn.onclick = () => {
       haptic([20, 30, 20]);
@@ -500,10 +461,8 @@ function getLearnedSortedList() {
 
 function saveFood() {
   if (!isLearningEnabled()) return;
-
   const input = document.getElementById('foodName').value.trim();
   if (!input || input.includes('/learned')) return;
-
   const data = getStoredFoods();
   data[input] = (data[input] || 0) + 1;
   localStorage.setItem('foodsData', JSON.stringify(data));
@@ -513,35 +472,25 @@ let learnedIndex = 0;
 
 function setRandomFood() {
   const input = document.getElementById('foodName');
-
   if (!isLearningEnabled()) {
     input.value = defaultFoods[Math.floor(Math.random() * defaultFoods.length)];
     return;
   }
-
   const learned = getLearnedSortedList();
-
-  if (learned.length > 0) {
-    if (learnedIndex >= learned.length) {
-      input.value = defaultFoods[Math.floor(Math.random() * defaultFoods.length)];
-      return;
-    }
-    input.value = learned[learnedIndex];
-    learnedIndex++;
+  if (learned.length > 0 && learnedIndex < learned.length) {
+    input.value = learned[learnedIndex++];
     return;
   }
-
   input.value = defaultFoods[Math.floor(Math.random() * defaultFoods.length)];
 }
 
 function openResetLearningModal() {
   vibrate(32);
-  document.getElementById('resetLearningModal').style.display = 'flex';
+  openModal({ modalId: 'resetLearningModal', boxId: 'resetLearningBox', backdropId: 'resetLearningBackdrop' });
 }
 
 function closeResetLearningModal() {
-  vibrate(32);
-  document.getElementById('resetLearningModal').style.display = 'none';
+  closeModal({ modalId: 'resetLearningModal', boxId: 'resetLearningBox', backdropId: 'resetLearningBackdrop' });
 }
 
 function confirmResetLearning() {
@@ -553,136 +502,115 @@ function confirmResetLearning() {
 
 // setup
 
-  function openWifiModal() {
-    document.getElementById("wifiModal").style.display = "flex";
-    const saved = JSON.parse(localStorage.getItem("pendingWifi") || "{}");
-    if (saved.ssid) document.getElementById("wifiSsid").value = saved.ssid;
-    if (saved.password) document.getElementById("wifiPass").value = saved.password;
-  }
+function openWifiModal() {
+  document.getElementById('wifiModal').style.display = 'flex';
+  const saved = JSON.parse(localStorage.getItem('pendingWifi') || '{}');
+  if (saved.ssid) document.getElementById('wifiSsid').value = saved.ssid;
+  if (saved.password) document.getElementById('wifiPass').value = saved.password;
+}
 
-  function closeWifiModal() {
-    document.getElementById("wifiModal").style.display = "none";
-  }
+function closeWifiModal() {
+  document.getElementById('wifiModal').style.display = 'none';
+}
 
-  function toggleWifiPass() {
-    const input = document.getElementById("wifiPass");
-    const icon = document.querySelector(".wifi-eye");
-    if (input.type === "password") {
-      input.type = "text";
-      icon.textContent = "visibility_off";
-    } else {
-      input.type = "password";
-      icon.textContent = "visibility";
-    }
-  }
+function toggleWifiPass() {
+  const input = document.getElementById('wifiPass');
+  const icon = document.querySelector('.wifi-eye');
+  const isPass = input.type === 'password';
+  input.type = isPass ? 'text' : 'password';
+  icon.textContent = isPass ? 'visibility_off' : 'visibility';
+}
 
-  function saveWifi() {
-    const ssid = document.getElementById("wifiSsid").value.trim();
-    const pass = document.getElementById("wifiPass").value;
+function saveWifi() {
+  const ssid = document.getElementById('wifiSsid').value.trim();
+  const pass = document.getElementById('wifiPass').value;
+  if (!ssid) return;
+  localStorage.setItem('pendingWifi', JSON.stringify({ ssid, password: pass }));
+  document.getElementById('wifiStatus').textContent = 'Connect to FoodPing Setup';
+  closeWifiModal();
+  startWifiSync();
+}
 
-    if (!ssid) return;
-
-    localStorage.setItem("pendingWifi", JSON.stringify({ ssid, password: pass }));
-    document.getElementById("wifiStatus").textContent = "Connect to FoodPing Setup";
-    closeWifiModal();
-    startWifiSync();
-  }
-
-  async function trySendWifi() {
-  const pending = JSON.parse(localStorage.getItem("pendingWifi") || "{}");
+async function trySendWifi() {
+  const pending = JSON.parse(localStorage.getItem('pendingWifi') || '{}');
   if (!pending.ssid) return;
-
-  const cloudId = localStorage.getItem("cloud_id") || "";
+  const cloudId = localStorage.getItem('cloud_id') || '';
 
   if (!cloudId) {
     try {
-      const test = await fetch("http://192.168.4.1/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ssid: pending.ssid, password: pending.password, script_id: "" }) });
-      document.getElementById("wifiStatus").textContent = "Cloud ID not found";
-    } catch (e) {
-      document.getElementById("wifiStatus").textContent = "Connect to FoodPing Setup";
-    }
+      await fetch('http://192.168.4.1/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ssid: pending.ssid, password: pending.password, script_id: '' }) });
+    } catch {}
+    document.getElementById('wifiStatus').textContent = 'Cloud ID not found';
     return;
   }
 
   try {
-    const res = await fetch("http://192.168.4.1/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ssid: pending.ssid,
-        password: pending.password,
-        script_id: cloudId
-      })
+    const res = await fetch('http://192.168.4.1/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ssid: pending.ssid, password: pending.password, script_id: cloudId })
     });
-
     if (res.ok) {
-      localStorage.removeItem("pendingWifi");
-      document.getElementById("wifiStatus").textContent = "Configured";
+      localStorage.removeItem('pendingWifi');
+      document.getElementById('wifiStatus').textContent = 'Configured';
       stopWifiSync();
     }
-  } catch (e) {}
+  } catch {}
 }
 
-  let wifiSyncInterval = null;
+let wifiSyncInterval = null;
 
-  function startWifiSync() {
-    if (wifiSyncInterval) return;
-    wifiSyncInterval = setInterval(trySendWifi, 3000);
-  }
+function startWifiSync() {
+  if (wifiSyncInterval) return;
+  wifiSyncInterval = setInterval(trySendWifi, 3000);
+}
 
-  function stopWifiSync() {
-    clearInterval(wifiSyncInterval);
-    wifiSyncInterval = null;
-  }
+function stopWifiSync() {
+  clearInterval(wifiSyncInterval);
+  wifiSyncInterval = null;
+}
 
-  async function resetWifi() {
-    openAlert({
-      title: 'Reset WiFi',
-      msg: 'This will clear WiFi credentials. ESP will restart as a hotspot. Continue?',
-      buttons: [
-        { label: 'Cancel', subtle: true },
-        {
-          label: 'Reset',
-          bold: true,
-          danger: true,
-          action: async () => {
-            closeWifiModal();
-            localStorage.removeItem("pendingWifi");
-            document.getElementById("wifiStatus").textContent = "Not Configured";
-            stopWifiSync();
-            try {
-              await fetch("http://esp32.local/reset-wifi", { method: "POST" });
-            } catch (e) {}
-            setTimeout(() => {
-              openAlert({
-                title: 'WiFi Reset',
-                msg: "Connect to 'FoodPing-Setup' hotspot, then reopen this app to reconfigure.",
-                buttons: [{ label: 'OK' }]
-              });
-            }, 300);
-          }
+async function resetWifi() {
+  openAlert({
+    title: 'Reset WiFi',
+    msg: 'This will clear WiFi credentials. ESP will restart as a hotspot. Continue?',
+    buttons: [
+      { label: 'Cancel', subtle: true },
+      {
+        label: 'Reset', bold: true, danger: true,
+        action: async () => {
+          closeWifiModal();
+          localStorage.removeItem('pendingWifi');
+          document.getElementById('wifiStatus').textContent = 'Not Configured';
+          stopWifiSync();
+          try { await fetch('http://esp32.local/reset-wifi', { method: 'POST' }); } catch {}
+          setTimeout(() => openAlert({
+            title: 'WiFi Reset',
+            msg: "Connect to 'FoodPing-Setup' hotspot, then reopen this app to reconfigure.",
+            buttons: [{ label: 'OK' }]
+          }), 300);
         }
-      ]
-    });
-  }
+      }
+    ]
+  });
+}
 
-  if (localStorage.getItem("pendingWifi")) {
-    document.getElementById("wifiStatus").textContent = "Connect to FoodPing Setup";
-    startWifiSync();
-  }
+if (localStorage.getItem('pendingWifi')) {
+  document.getElementById('wifiStatus').textContent = 'Connect to FoodPing Setup';
+  startWifiSync();
+}
 
 // cloud
 
 function openCloudIdModal() {
   vibrate(32);
-  document.getElementById('cloudIdModal').style.display = 'flex';
   document.getElementById('cloudIdInput').value = localStorage.getItem('cloud_id') || '';
   document.getElementById('cloudUsrInput').value = localStorage.getItem('cloud_user') || '';
+  openModal({ modalId: 'cloudIdModal', boxId: 'cloudIdBox', backdropId: 'cloudIdBackdrop' });
 }
 
 function closeCloudIdModal() {
-  vibrate(10);
-  document.getElementById('cloudIdModal').style.display = 'none';
+  closeModal({ modalId: 'cloudIdModal', boxId: 'cloudIdBox', backdropId: 'cloudIdBackdrop' });
 }
 
 function saveCloudId() {
@@ -701,14 +629,7 @@ function initDevsEasterEgg() {
   const el = document.getElementById('devs');
   if (!el) return;
   let toggled = false;
-
-  Object.assign(el.style, {
-    fontSize: '15px',
-    color: 'var(--md-sys-color-on-surface)',
-    opacity: '0.5',
-    transition: 'opacity 0.3s'
-  });
-
+  Object.assign(el.style, { fontSize: '15px', color: 'var(--md-sys-color-on-surface)', opacity: '0.5', transition: 'opacity 0.3s' });
   el.addEventListener('click', () => {
     el.style.opacity = 0;
     setTimeout(() => {
@@ -723,77 +644,52 @@ function initDevsEasterEgg() {
 
 (function () {
   function printLearnedFoods() {
-    const data = JSON.parse(localStorage.getItem('foodsData')) || {};
-    const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+    const sorted = Object.entries(JSON.parse(localStorage.getItem('foodsData')) || {}).sort((a, b) => b[1] - a[1]);
     console.clear();
     console.log('What i learned from this user?');
-    sorted.forEach(([food, count], i) => {
-      console.log(`${i + 1}. ${food} → ${count}`);
-    });
-  }
-
-  function checkCommand(input) {
-    if (input.value.includes('/learned')) {
-      printLearnedFoods();
-      input.value = input.value.replace('/learned', '').trim();
-    }
+    sorted.forEach(([food, count], i) => console.log(`${i + 1}. ${food} → ${count}`));
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     const foodInput = document.getElementById('foodName');
     if (!foodInput) return;
-    foodInput.addEventListener('input', () => checkCommand(foodInput));
+    foodInput.addEventListener('input', () => {
+      if (foodInput.value.includes('/learned')) {
+        printLearnedFoods();
+        foodInput.value = foodInput.value.replace('/learned', '').trim();
+      }
+    });
   });
 })();
 
 // sw
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(reg => reg.unregister());
-  }).then(() => {
-    navigator.serviceWorker.register('/FoodPingg/sw.js');
-  });
+  navigator.serviceWorker.getRegistrations()
+    .then(regs => Promise.all(regs.map(r => r.unregister())))
+    .then(() => navigator.serviceWorker.register('/FoodPingg/sw.js'));
 }
 
 // greetings
 
 function greetUser() {
-  const username = localStorage.getItem('cloud_user');
-
   const h1 = document.querySelector('#home h1');
   if (!h1) return;
 
+  const username = localStorage.getItem('cloud_user');
   const hour = new Date().getHours();
-  let greeting;
-  if (hour < 12) greeting = 'Good Morning';
-  else if (hour < 17) greeting = 'Good Afternoon';
-  else if (hour < 21) greeting = 'Good Evening';
-  else greeting = 'Good Night';
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : hour < 21 ? 'Good Evening' : 'Good Night';
+  const greetText = username ? `${greeting},<br>${username}!` : `${greeting}!`;
 
-  const greetText = username 
-    ? `${greeting},<br>${username}!` 
-    : `${greeting}!`;
-
-  setTimeout(() => {
+  const fade = (content, delay) => setTimeout(() => {
     h1.style.transition = 'opacity 0.5s ease';
     h1.style.opacity = '0';
+    setTimeout(() => { h1.innerHTML = content; h1.style.opacity = '1'; }, 500);
+  }, delay);
 
-    setTimeout(() => {
-      h1.innerHTML = greetText;
-      h1.style.opacity = '1';
-
-      setTimeout(() => {
-        h1.style.opacity = '0';
-
-        setTimeout(() => {
-          h1.innerHTML = 'FoodPing';
-          h1.style.opacity = '1';
-        }, 500);
-
-      }, 2000);
-    }, 500);
-
+  setTimeout(() => {
+    fade(greetText, 0);
+    setTimeout(() => fade('FoodPing', 2000), 500);
   }, 2000);
 }
 
@@ -820,7 +716,6 @@ const themes = {
     '--md-sys-color-input-background':     'rgb(255, 240, 246)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(240, 182, 193, 0.15)',
   },
-
   tomato: {
     name: 'Tomato Jelly',
     '--md-sys-color-primary':              'rgb(220, 70, 60)',
@@ -841,7 +736,6 @@ const themes = {
     '--md-sys-color-input-background':     'rgb(255, 244, 243)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(220, 70, 60, 0.12)',
   },
-
   honey: {
     name: 'Honey Amber',
     '--md-sys-color-primary':              'rgb(240, 180, 60)',
@@ -862,7 +756,6 @@ const themes = {
     '--md-sys-color-input-background':     'rgb(255, 250, 235)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(240, 180, 60, 0.15)',
   },
-
   mint: {
     name: 'Mint Breeze',
     '--md-sys-color-primary':              'rgb(170, 230, 210)',
@@ -883,11 +776,10 @@ const themes = {
     '--md-sys-color-input-background':     'rgb(240, 253, 250)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(170, 230, 210, 0.15)',
   },
-
   android: {
     name: 'Android Green',
-    '--md-sys-color-primary':              'rgb(91, 122, 74)', 
-    '--md-sys-color-on-primary':           'rgb(255, 255, 255)', 
+    '--md-sys-color-primary':              'rgb(91, 122, 74)',
+    '--md-sys-color-on-primary':           'rgb(255, 255, 255)',
     '--md-sys-color-primary-container':    'rgb(221, 241, 208)',
     '--md-sys-color-on-primary-container': 'rgb(40, 60, 30)',
     '--md-sys-color-background':           'rgb(248, 251, 245)',
@@ -903,9 +795,7 @@ const themes = {
     '--md-sys-color-input-border':         'rgba(195, 210, 185, 0.6)',
     '--md-sys-color-input-background':     'rgb(242, 248, 236)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(91, 122, 74, 0.08)',
-},
-
-
+  },
   blueberry: {
     name: 'Blueberry Muffin',
     '--md-sys-color-primary':              'rgb(100, 120, 200)',
@@ -926,7 +816,6 @@ const themes = {
     '--md-sys-color-input-background':     'rgb(242, 244, 255)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(100, 120, 200, 0.15)',
   },
-
   amethyst: {
     name: 'Amethyst Shard',
     '--md-sys-color-primary':              'rgb(155, 110, 200)',
@@ -947,7 +836,6 @@ const themes = {
     '--md-sys-color-input-background':     'rgb(248, 244, 255)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(155, 110, 200, 0.15)',
   },
-
   coco: {
     name: 'Coco Cream',
     '--md-sys-color-primary':              'rgb(210, 180, 140)',
@@ -968,7 +856,6 @@ const themes = {
     '--md-sys-color-input-background':     'rgb(255, 252, 245)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(210, 180, 140, 0.15)',
   },
-
   white: {
     name: 'Steamed Bun',
     '--md-sys-color-primary':              'rgb(180, 180, 180)',
@@ -989,7 +876,6 @@ const themes = {
     '--md-sys-color-input-background':     'rgb(248, 248, 248)',
     '--md-sys-shadow-home-card':           '0 0 0 2px rgba(180, 180, 180, 0.15)',
   },
-
   void: {
     name: 'The Void',
     '--md-sys-color-primary':              'rgb(170, 170, 170)',
@@ -1013,13 +899,12 @@ const themes = {
 };
 
 function applyTheme(key) {
-  haptic(20);
+  haptic(22);
   const theme = themes[key];
   if (!theme) return;
 
   const currentTheme = localStorage.getItem('theme') || 'strawberry';
-  const voidInvolved = key === 'void' || currentTheme === 'void';
-  const duration = voidInvolved ? 0 : 350;
+  const duration = (key === 'void' || currentTheme === 'void') ? 0 : 350;
 
   document.body.style.setProperty('--theme-transition-duration', `${duration}ms`);
   document.body.classList.add('theme-transitioning');
@@ -1030,9 +915,7 @@ function applyTheme(key) {
   });
 
   const surfaceContainer = theme['--md-sys-color-surface-container'];
-  document.querySelectorAll('meta[name="theme-color"]').forEach(el => {
-    el.setAttribute('content', surfaceContainer);
-  });
+  document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.setAttribute('content', surfaceContainer));
   document.querySelector('meta[name="msapplication-navbutton-color"]')?.setAttribute('content', surfaceContainer);
   document.querySelector('meta[name="msapplication-TileColor"]')?.setAttribute('content', surfaceContainer);
 
@@ -1048,38 +931,18 @@ function applyTheme(key) {
 }
 
 function initTheme() {
-  const saved = localStorage.getItem('theme') || 'strawberry';
-  applyTheme(saved);
+  applyTheme(localStorage.getItem('theme') || 'strawberry');
 }
 
 function openThemeModal() {
-  haptic(32);
-  const modal = document.getElementById('themeModal');
-  const box   = document.getElementById('themeBox');
-  const backdrop = document.getElementById('themeBackdrop');
-
-  modal.style.display = 'flex';
-  box.style.animation      = 'alertPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
-  backdrop.style.animation = 'alertFadeIn 0.32s ease forwards';
-
+  openModal({ modalId: 'themeModal', boxId: 'themeBox', backdropId: 'themeBackdrop', hapticMs: 32 });
   const saved = localStorage.getItem('theme') || 'strawberry';
   document.querySelectorAll('.theme-check').forEach(el => el.classList.remove('visible'));
   document.getElementById(`check-${saved}`)?.classList.add('visible');
 }
 
 function closeThemeModal() {
-  haptic(10);
-  const box      = document.getElementById('themeBox');
-  const backdrop = document.getElementById('themeBackdrop');
-
-  box.style.animation      = 'alertPopOut 0.2s ease forwards';
-  backdrop.style.animation = 'alertFadeOut 0.2s ease forwards';
-
-  setTimeout(() => {
-    document.getElementById('themeModal').style.display = 'none';
-    box.style.animation      = '';
-    backdrop.style.animation = '';
-  }, 200);
+  closeModal({ modalId: 'themeModal', boxId: 'themeBox', backdropId: 'themeBackdrop' });
 }
 
 // fonts
@@ -1107,23 +970,17 @@ function loadFont(fontKey) {
   if (loadedFonts.has(fontKey)) return Promise.resolve();
   loadedFonts.add(fontKey);
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (fontKey === 'monocraft') {
       const style = document.createElement('style');
-      style.textContent = `@font-face {
-        font-family: 'Monocraft';
-        src: url('https://cdn.jsdelivr.net/gh/IdreesInc/Monocraft@main/dist/Monocraft-ttf/Monocraft.ttf') format('truetype');
-        font-weight: normal;
-        font-style: normal;
-      }`;
+      style.textContent = `@font-face{font-family:'Monocraft';src:url('https://cdn.jsdelivr.net/gh/IdreesInc/Monocraft@main/dist/Monocraft-ttf/Monocraft.ttf') format('truetype');font-weight:normal;font-style:normal;}`;
       document.head.appendChild(style);
       setTimeout(resolve, 100);
     } else if (FONT_SOURCES[fontKey]) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = FONT_SOURCES[fontKey];
-      link.onload = resolve;
-      link.onerror = resolve;
+      link.onload = link.onerror = resolve;
       document.head.appendChild(link);
     } else {
       resolve();
@@ -1133,81 +990,54 @@ function loadFont(fontKey) {
 
 function loadAllFonts() {
   if (allFontsLoaded) return Promise.resolve();
-  const keys = Object.keys(FONT_SOURCES).filter(k => k !== 'default');
-  return Promise.all(keys.map(loadFont)).then(() => {
-    allFontsLoaded = true;
-  });
+  return Promise.all(Object.keys(FONT_SOURCES).filter(k => k !== 'default').map(loadFont))
+    .then(() => { allFontsLoaded = true; });
 }
 
 function setFontStyle(family) {
-  const styleId = 'font-override-style';
-  let styleEl = document.getElementById(styleId);
+  let styleEl = document.getElementById('font-override-style');
   if (!styleEl) {
     styleEl = document.createElement('style');
-    styleEl.id = styleId;
+    styleEl.id = 'font-override-style';
     document.head.appendChild(styleEl);
   }
-
   styleEl.textContent = `
-    * { font-family: ${family} !important; }
-    .material-symbols-outlined { font-family: 'Material Symbols Outlined' !important; }
-    .material-icons { font-family: 'Material Icons' !important; }
-    .material-icons-round { font-family: 'Material Icons Round' !important; }
-    .fa, .fa-solid, .fa-regular, .fa-brands { font-family: 'Font Awesome 7 Free', 'Font Awesome 7 Brands' !important; }
-    #font-default .font-preview, #font-default .font-name { font-family: "Google Sans Flex", system-ui, sans-serif !important; }
-    #font-patrickhand .font-preview, #font-patrickhand .font-name { font-family: "Patrick Hand", cursive !important; }
-    #font-gaegu .font-preview, #font-gaegu .font-name { font-family: "Gaegu", cursive !important; }
-    #font-monocraft .font-preview, #font-monocraft .font-name { font-family: "Monocraft", monospace !important; }
-    #font-jetbrains .font-preview, #font-jetbrains .font-name { font-family: "JetBrains Mono", monospace !important; }
+    *{font-family:${family}!important;}
+    .material-symbols-outlined{font-family:'Material Symbols Outlined'!important;}
+    .material-icons{font-family:'Material Icons'!important;}
+    .material-icons-round{font-family:'Material Icons Round'!important;}
+    .fa,.fa-solid,.fa-regular,.fa-brands{font-family:'Font Awesome 7 Free','Font Awesome 7 Brands'!important;}
+    #font-default .font-preview,#font-default .font-name{font-family:"Google Sans Flex",system-ui,sans-serif!important;}
+    #font-patrickhand .font-preview,#font-patrickhand .font-name{font-family:"Patrick Hand",cursive!important;}
+    #font-gaegu .font-preview,#font-gaegu .font-name{font-family:"Gaegu",cursive!important;}
+    #font-monocraft .font-preview,#font-monocraft .font-name{font-family:"Monocraft",monospace!important;}
+    #font-jetbrains .font-preview,#font-jetbrains .font-name{font-family:"JetBrains Mono",monospace!important;}
   `;
 }
 
 function applyFont(fontKey) {
-  const family = FONT_FAMILY[fontKey];
-
-  loadFont(fontKey).then(() => {
-    setFontStyle(family);
-  });
-
+  loadFont(fontKey).then(() => setFontStyle(FONT_FAMILY[fontKey]));
   localStorage.setItem('selectedFont', fontKey);
-
   document.querySelectorAll('.font-check').forEach(el => el.classList.remove('visible'));
-  const check = document.getElementById(`check-font-${fontKey}`);
-  if (check) check.classList.add('visible');
-
+  document.getElementById(`check-font-${fontKey}`)?.classList.add('visible');
   const display = document.getElementById('fontDisplay');
   if (display) display.textContent = document.querySelector(`#font-${fontKey} .font-name`)?.textContent || 'Default';
 }
 
 async function openFontModal() {
-  const modal = document.getElementById('fontModal');
   const list = document.getElementById('fontList');
 
-  modal.style.display = 'flex';
+  openModal({ modalId: 'fontModal', boxId: 'fontBox', backdropId: 'fontBackdrop', hapticMs: 32 });
 
   if (!allFontsLoaded) {
-    list.style.opacity = '0.4';
-    list.style.pointerEvents = 'none';
-    list.style.transition = 'opacity 0.3s ease';
-
+    list.style.cssText = 'opacity:0.4;pointer-events:none;transition:opacity 0.3s ease;';
     const spinner = document.createElement('div');
     spinner.id = 'fontLoadingSpinner';
-    spinner.style.cssText = `
-      position: absolute;
-      bottom: 5rem;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 0.75rem;
-      color: var(--md-sys-color-on-surface);
-      opacity: 0.5;
-      font-family: "Google Sans Flex", sans-serif !important;
-      white-space: nowrap;
-    `;
+    spinner.style.cssText = 'position:absolute;bottom:5rem;left:50%;transform:translateX(-50%);font-size:0.75rem;color:var(--md-sys-color-on-surface);opacity:0.5;font-family:"Google Sans Flex",sans-serif!important;white-space:nowrap;';
     spinner.textContent = 'Loading fonts...';
     document.getElementById('fontBox').appendChild(spinner);
 
     await loadAllFonts();
-
     list.style.opacity = '1';
     list.style.pointerEvents = '';
     spinner.remove();
@@ -1215,20 +1045,14 @@ async function openFontModal() {
 }
 
 function closeFontModal() {
-  document.getElementById('fontModal').style.display = 'none';
+  closeModal({ modalId: 'fontModal', boxId: 'fontBox', backdropId: 'fontBackdrop' });
 }
 
 function initFont() {
   const saved = localStorage.getItem('selectedFont') || 'default';
-
-  loadFont(saved).then(() => {
-    setFontStyle(FONT_FAMILY[saved]);
-  });
-
+  loadFont(saved).then(() => setFontStyle(FONT_FAMILY[saved]));
   document.querySelectorAll('.font-check').forEach(el => el.classList.remove('visible'));
-  const check = document.getElementById(`check-font-${saved}`);
-  if (check) check.classList.add('visible');
-
+  document.getElementById(`check-font-${saved}`)?.classList.add('visible');
   const display = document.getElementById('fontDisplay');
   if (display) display.textContent = document.querySelector(`#font-${saved} .font-name`)?.textContent || 'Default';
 }
@@ -1237,25 +1061,19 @@ initFont();
 
 const fontSizeSlider = document.getElementById('fontSizeSlider');
 const fontSizeValue = document.getElementById('fontSizeValue');
-
 let fontSizeTimer = null;
-
-function applyFontSize(size) {
-  document.documentElement.style.fontSize = size + 'px';
-}
 
 const savedSize = localStorage.getItem('fontSize') || '16';
 fontSizeSlider.value = savedSize;
 fontSizeValue.textContent = savedSize;
-applyFontSize(savedSize);
+document.documentElement.style.fontSize = savedSize + 'px';
 
 fontSizeSlider.addEventListener('input', () => {
   const size = fontSizeSlider.value;
   fontSizeValue.textContent = size;
-
   clearTimeout(fontSizeTimer);
   fontSizeTimer = setTimeout(() => {
-    applyFontSize(size);
+    document.documentElement.style.fontSize = size + 'px';
     localStorage.setItem('fontSize', size);
     haptic(32);
   }, 1000);
@@ -1263,52 +1081,51 @@ fontSizeSlider.addEventListener('input', () => {
 
 // backups
 
-function backupData(){
-  const o={};
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    o[k]=localStorage.getItem(k);
+function backupData() {
+  const o = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    o[k] = localStorage.getItem(k);
   }
-  const blob=new Blob([JSON.stringify({v:1,data:o})],{type:"application/octet-stream"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="foodping.foodping-backup";
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ v: 1, data: o })], { type: 'application/octet-stream' }));
+  a.download = 'foodping.foodping-backup';
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
-function restoreData(f){
-  const r=new FileReader();
-  r.onload=()=>{
-    const parsed=JSON.parse(r.result);
-    const data=parsed.data||parsed;
+function restoreData(f) {
+  const r = new FileReader();
+  r.onload = () => {
+    const parsed = JSON.parse(r.result);
+    const data = parsed.data || parsed;
     localStorage.clear();
-    for(const k in data){
-      if(data[k]!==null&&data[k]!==undefined) localStorage.setItem(k,data[k]);
+    for (const k in data) {
+      if (data[k] != null) localStorage.setItem(k, data[k]);
     }
     location.reload();
   };
   r.readAsText(f);
 }
 
-backupBtn.onclick=backupData;
+backupBtn.onclick = backupData;
 
-restoreBtn.onclick=()=>{
-  const i=document.createElement("input");
-  i.type="file";
-  i.accept=".foodping-backup";
-  i.onchange=e=>e.target.files[0]&&restoreData(e.target.files[0]);
+restoreBtn.onclick = () => {
+  const i = document.createElement('input');
+  i.type = 'file';
+  i.accept = '.foodping-backup';
+  i.onchange = e => e.target.files[0] && restoreData(e.target.files[0]);
   i.click();
 };
 
 // credits
 
 function openCreditsModal() {
-  document.getElementById('creditsModal').style.display = 'flex';
+  openModal({ modalId: 'creditsModal', boxId: 'creditsBox', backdropId: 'creditsBackdrop', useHaptic: false });
 }
 
 function closeCreditsModal() {
-  document.getElementById('creditsModal').style.display = 'none';
+  closeModal({ modalId: 'creditsModal', boxId: 'creditsBox', backdropId: 'creditsBackdrop' });
 }
 
 // init
@@ -1322,25 +1139,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('timePickerBackdrop').onclick = () => closeTimePicker(false);
 
   document.querySelectorAll('.nav-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      haptic(32);
-      navigateTo(btn.dataset.page);
-    });
+    btn.addEventListener('click', () => { haptic(32); navigateTo(btn.dataset.page); });
   });
 
   document.querySelectorAll('.md-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      haptic(64);
-    });
+    btn.addEventListener('click', e => { e.stopPropagation(); haptic(64); });
   });
 
   document.querySelectorAll('input').forEach(input => {
-    input.addEventListener('focus', () => haptic(10));
+    input.addEventListener('focus', () => haptic(20));
   });
 
   document.querySelectorAll('.settings-row').forEach(row => {
-    row.addEventListener('click', () => haptic(20));
+    row.addEventListener('click', () => haptic(22));
   });
 
   const hapticToggle = document.getElementById('hapticToggle');
@@ -1354,23 +1165,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const notifToggle = document.getElementById('notifToggle');
   notifToggle.checked = localStorage.getItem('notifEnabled') !== 'false';
   notifToggle.addEventListener('change', () => {
-    haptic(20);
-    localStorage.setItem('notifEnabled', notifToggle.checked ? 'true' : 'false');
-    if (notifToggle.checked && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    haptic(22);
+    localStorage.setItem('notifEnabled', notifToggle.checked);
+    if (notifToggle.checked && Notification.permission === 'default') Notification.requestPermission();
   });
 
   const neuralToggle = document.getElementById('neuralLearning');
   neuralToggle.checked = localStorage.getItem('neuralLearning') === 'true';
-  neuralToggle.addEventListener('change', () => {
-    localStorage.setItem('neuralLearning', neuralToggle.checked);
-  });
+  neuralToggle.addEventListener('change', () => localStorage.setItem('neuralLearning', neuralToggle.checked));
 
   document.getElementById('notifTimeDisplay').textContent = localStorage.getItem('notifTime') || '8:00 AM';
   const cloudId = localStorage.getItem('cloud_id') || '';
-document.getElementById('cloudIdDisplay').textContent = cloudId ? 'Set' : 'Not set';
+  document.getElementById('cloudIdDisplay').textContent = cloudId ? 'Set' : 'Not set';
 });
 
 greetUser();
-initTheme()
+
+initTheme();
