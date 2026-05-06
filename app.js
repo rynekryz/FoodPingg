@@ -503,14 +503,14 @@ function confirmResetLearning() {
 // setup
 
 function openWifiModal() {
-  document.getElementById('wifiModal').style.display = 'flex';
   const saved = JSON.parse(localStorage.getItem('pendingWifi') || '{}');
   if (saved.ssid) document.getElementById('wifiSsid').value = saved.ssid;
   if (saved.password) document.getElementById('wifiPass').value = saved.password;
+  openModal({ modalId: 'wifiModal', boxId: 'wifiBox', backdropId: 'wifiBackdrop' });
 }
 
 function closeWifiModal() {
-  document.getElementById('wifiModal').style.display = 'none';
+  closeModal({ modalId: 'wifiModal', boxId: 'wifiBox', backdropId: 'wifiBackdrop' });
 }
 
 function toggleWifiPass() {
@@ -705,41 +705,21 @@ function greetUser() {
 
   if (navigator.getBattery) {
     navigator.getBattery().then(battery => {
-      const showYummy = () => {
-        if (!battery.charging) return;
-
-        const original = h1.innerHTML;
-
-        h1.style.transition = 'opacity 0.3s ease';
-        h1.style.opacity = '0';
-        setTimeout(() => {
-          h1.innerHTML = 'Yummy!';
-          h1.style.opacity = '1';
-        }, 300);
-
-        setTimeout(() => {
-          h1.style.opacity = '0';
-          setTimeout(() => {
-            h1.innerHTML = original;
-            h1.style.opacity = '1';
-          }, 300);
-        }, 2000);
+      const saveOriginals = () => {
+        document.querySelectorAll('.home-bg .material-symbols-outlined').forEach(icon => {
+          if (!icon.dataset.original) icon.dataset.original = icon.textContent.trim();
+        });
       };
 
-      const swapIcons = (toBolt) => {
+      const swapIcons = (to) => {
         const icons = document.querySelectorAll('.home-bg .material-symbols-outlined');
         icons.forEach((icon, i) => {
           setTimeout(() => {
             icon.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
             icon.style.transform = `rotate(var(--r, 0deg)) rotateY(90deg)`;
             icon.style.opacity = '0';
-
             setTimeout(() => {
-              icon.textContent = toBolt ? 'bolt' : icon.dataset.original ?? icon.textContent;
-              if (!icon.dataset.original && toBolt) {
-              }
-              
-              icon.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+              icon.textContent = to === 'original' ? icon.dataset.original : to;
               icon.style.transform = `rotate(var(--r, 0deg)) rotateY(0deg)`;
               icon.style.opacity = '1';
             }, 300);
@@ -747,26 +727,37 @@ function greetUser() {
         });
       };
 
-      const saveOriginals = () => {
-        document.querySelectorAll('.home-bg .material-symbols-outlined').forEach(icon => {
-          if (!icon.dataset.original) icon.dataset.original = icon.textContent.trim();
-        });
-      };
+      const showMessage = (text, iconName) => {
+        const original = h1.innerHTML;
+        h1.style.transition = 'opacity 0.3s ease';
+        h1.style.opacity = '0';
+        setTimeout(() => {
+          h1.innerHTML = text;
+          h1.style.opacity = '1';
+        }, 300);
+        setTimeout(() => {
+          h1.style.opacity = '0';
+          setTimeout(() => {
+            h1.innerHTML = original;
+            h1.style.opacity = '1';
+          }, 300);
+        }, 2000);
 
-      const showYummyWithBolt = () => {
-        if (!battery.charging) return;
         saveOriginals();
-        showYummy();
-        swapIcons(true);
-
-        setTimeout(() => swapIcons(false), 2600); 
+        swapIcons(iconName);
+        setTimeout(() => swapIcons('original'), 2600);
       };
 
       battery.addEventListener('chargingchange', () => {
-        if (battery.charging) showYummyWithBolt();
-      });
+        if (battery.charging) {
+          showMessage('Yummy!', 'bolt');
+        } else {
+          const ouchIcon = battery.level * 100 > 20 ? 'error' : 'sentiment_very_dissatisfied';
+            showMessage('Ouch!', ouchIcon);
+        }
+    });
 
-      if (battery.charging) showYummyWithBolt();
+      if (battery.charging) showMessage('Yummy!', 'bolt');
     });
   }
 }
@@ -1258,5 +1249,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 greetUser();
-
 initTheme();
