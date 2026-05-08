@@ -697,6 +697,9 @@ if ('serviceWorker' in navigator) {
 
 // greetings
 
+let shakeReady = false;
+setTimeout(() => { shakeReady = true; }, 5000);
+
 function greetUser() {
   const h1 = document.querySelector('#home h1');
   if (!h1) return;
@@ -714,6 +717,8 @@ function greetUser() {
     ? `${greeting},<br>${username}!`
     : `${greeting}!`;
 
+  let isBusy = false;
+
   const fade = (content, delay) => setTimeout(() => {
     h1.style.transition = 'opacity 0.5s ease';
     h1.style.opacity = '0';
@@ -724,67 +729,144 @@ function greetUser() {
   }, delay);
 
   setTimeout(() => {
+    isBusy = true;
     fade(greetText, 0);
-    setTimeout(() => fade('FoodPing', 2000), 500);
+    setTimeout(() => {
+      fade('FoodPing', 2000);
+      setTimeout(() => { isBusy = false; }, 3000);
+    }, 500);
   }, 2000);
+
+  const saveOriginals = () => {
+    document.querySelectorAll('.home-bg .material-symbols-outlined').forEach(icon => {
+      if (!icon.dataset.original) icon.dataset.original = icon.textContent.trim();
+    });
+  };
+
+  const iconsAtOriginal = () => {
+    const icons = document.querySelectorAll('.home-bg .material-symbols-outlined');
+    return [...icons].every(icon =>
+      !icon.dataset.original || icon.textContent.trim() === icon.dataset.original
+    );
+  };
+
+  const swapIcons = (to) => {
+    const icons = document.querySelectorAll('.home-bg .material-symbols-outlined');
+    icons.forEach((icon, i) => {
+      setTimeout(() => {
+        icon.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+        icon.style.transform = `rotate(var(--r, 0deg)) rotateY(90deg)`;
+        icon.style.opacity = '0';
+        setTimeout(() => {
+          icon.textContent = to === 'original' ? icon.dataset.original : to;
+          icon.style.transform = `rotate(var(--r, 0deg)) rotateY(0deg)`;
+          icon.style.opacity = '1';
+        }, 300);
+      }, i * 40);
+    });
+  };
+
+  const showMessage = (text, iconName) => {
+    isBusy = true;
+    const original = h1.innerHTML;
+    h1.style.transition = 'opacity 0.3s ease';
+    h1.style.opacity = '0';
+    setTimeout(() => {
+      h1.innerHTML = text;
+      h1.style.opacity = '1';
+    }, 300);
+    setTimeout(() => {
+      h1.style.opacity = '0';
+      setTimeout(() => {
+        h1.innerHTML = original;
+        h1.style.opacity = '1';
+        setTimeout(() => { isBusy = false; }, 500);
+      }, 300);
+    }, 2000);
+
+    saveOriginals();
+    swapIcons(iconName);
+    setTimeout(() => swapIcons('original'), 2600);
+  };
+
+  const isGreeting = () => {
+    const current = h1.innerHTML;
+    return current.includes('Good Morning') ||
+           current.includes('Good Afternoon') ||
+           current.includes('Good Evening') ||
+           current.includes('Good Night');
+  };
 
   if (navigator.getBattery) {
     navigator.getBattery().then(battery => {
-      const saveOriginals = () => {
-        document.querySelectorAll('.home-bg .material-symbols-outlined').forEach(icon => {
-          if (!icon.dataset.original) icon.dataset.original = icon.textContent.trim();
-        });
-      };
-
-      const swapIcons = (to) => {
-        const icons = document.querySelectorAll('.home-bg .material-symbols-outlined');
-        icons.forEach((icon, i) => {
-          setTimeout(() => {
-            icon.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-            icon.style.transform = `rotate(var(--r, 0deg)) rotateY(90deg)`;
-            icon.style.opacity = '0';
-            setTimeout(() => {
-              icon.textContent = to === 'original' ? icon.dataset.original : to;
-              icon.style.transform = `rotate(var(--r, 0deg)) rotateY(0deg)`;
-              icon.style.opacity = '1';
-            }, 300);
-          }, i * 40);
-        });
-      };
-
-      const showMessage = (text, iconName) => {
-        const original = h1.innerHTML;
-        h1.style.transition = 'opacity 0.3s ease';
-        h1.style.opacity = '0';
-        setTimeout(() => {
-          h1.innerHTML = text;
-          h1.style.opacity = '1';
-        }, 300);
-        setTimeout(() => {
-          h1.style.opacity = '0';
-          setTimeout(() => {
-            h1.innerHTML = original;
-            h1.style.opacity = '1';
-          }, 300);
-        }, 2000);
-
-        saveOriginals();
-        swapIcons(iconName);
-        setTimeout(() => swapIcons('original'), 2600);
-      };
-
       battery.addEventListener('chargingchange', () => {
         if (battery.charging) {
           showMessage('Yummy!', 'bolt');
         } else {
           const ouchIcon = battery.level * 100 > 20 ? 'error' : 'sentiment_very_dissatisfied';
-            showMessage('Ouch!', ouchIcon);
+          showMessage('Ouch!', ouchIcon);
         }
-    });
+      });
 
       if (battery.charging) showMessage('Yummy!', 'bolt');
     });
   }
+
+  let shakeIndex = 0;
+  let lastShake = 0;
+  let shakeCount = 0;
+  let shakeWindowTimer = null;
+
+  const shakeStates = [
+    { message: 'Hey, you made<br>me dizzy!', icon: 'sentiment_stressed' },
+    { message: 'Stop itt!',                  icon: 'sentiment_neutral' },
+    { message: 'My "head" hurts<br>T-T',       icon: 'sick' },
+  ];
+
+  const handleShake = (force) => {
+    if (!shakeReady) return;
+    const now = Date.now();
+
+    if (isBusy) return;
+    if (!iconsAtOriginal()) return;
+    if (isGreeting() && force < 64) return;
+
+    if (now - lastShake > 1500) {
+      shakeCount = 0;
+    }
+
+    shakeCount++;
+    lastShake = now;
+
+    clearTimeout(shakeWindowTimer);
+    shakeWindowTimer = setTimeout(() => { shakeCount = 0; }, 1500);
+
+    if (shakeCount < 3) return;
+
+    shakeCount = 0;
+    clearTimeout(shakeWindowTimer);
+
+    const { message, icon } = shakeStates[shakeIndex];
+    shakeIndex = (shakeIndex + 1) % shakeStates.length;
+
+    showMessage(message, icon);
+    
+    if (navigator.vibrate) {
+      navigator.vibrate([32, 30, 48]);
+    }
+  };
+
+  function onMotion(e) {
+    const a = e.accelerationIncludingGravity || e.acceleration;
+    if (!a) return;
+    const force = Math.sqrt((a.x || 0) ** 2 + (a.y || 0) ** 2 + (a.z || 0) ** 2);
+    if (force > 48) handleShake(force);
+  }
+
+  document.addEventListener('click', function initMotion() {
+    document.removeEventListener('click', initMotion);
+    window.addEventListener('devicemotion', onMotion);
+  }, { once: true });
 }
 
 // themes
