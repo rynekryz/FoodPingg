@@ -52,7 +52,7 @@ document.body.appendChild(timePickerEl);
 
 // nav
 
-const navOrder = ['home', 'logs', 'settings', 'about'];
+const navOrder = ['home', 'logs', 'feedpage', 'settings', 'about'];
 let currentPage = 'home';
 
 function navigateTo(targetPage) {
@@ -84,6 +84,40 @@ function navigateTo(targetPage) {
   currentPage = targetPage;
 }
 
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+
+  if (Math.abs(dy) > Math.abs(dx)) return;
+  if (Math.abs(dx) < 50) return;
+
+  const feedEnabled = localStorage.getItem('feedEnabled') === 'true';
+  const swipeOrder = navOrder.filter(p => feedEnabled || p !== 'feedpage');
+  const currentIndex = swipeOrder.indexOf(currentPage);
+
+  if (dx < 0) {
+    const next = swipeOrder[currentIndex + 1];
+    if (next) {
+      navigateTo(next);
+      if (next === 'feedpage' && !feedLoaded) loadFeed();
+    }
+  } else {
+    const prev = swipeOrder[currentIndex - 1];
+    if (prev) {
+      navigateTo(prev);
+      if (prev === 'feedpage' && !feedLoaded) loadFeed();
+    }
+  }
+}, { passive: true });
+
 // haptic (real)
 
 let hapticEnabled = localStorage.getItem('haptic') !== 'off';
@@ -99,8 +133,10 @@ document.querySelectorAll('#cloudUrlActions button, #wifiActions button, #themeA
   btn.addEventListener('click', () => haptic(32));
 });
 
-function openModal({ modalId, boxId, backdropId, duration = 350, hapticMs = 0 }) {
-  if (hapticMs) haptic(hapticMs);
+// modal helpers
+
+function openModal({ modalId, boxId, backdropId, duration = 350 }) {
+  haptic(32);
   const modal = document.getElementById(modalId);
   const box = document.getElementById(boxId);
   const backdrop = document.getElementById(backdropId);
@@ -114,8 +150,8 @@ function openModal({ modalId, boxId, backdropId, duration = 350, hapticMs = 0 })
   });
 }
 
-function closeModal({ modalId, boxId, backdropId, duration = 200, useHaptic = true }) {
-  if (useHaptic) haptic(32);
+function closeModal({ modalId, boxId, backdropId, duration = 200 }) {
+  haptic(10);
   const modal = document.getElementById(modalId);
   const box = document.getElementById(boxId);
   const backdrop = document.getElementById(backdropId);
@@ -256,7 +292,18 @@ function closeTimePicker(save) {
 
 function openDatePicker() {
   if (navigator.vibrate) navigator.vibrate(32);
-  document.getElementById('datePicker').style.display = 'flex';
+
+  const picker = document.getElementById('datePicker');
+  const sheet = document.getElementById('datePickerSheet');
+  const backdrop = document.getElementById('datePickerBackdrop');
+
+  picker.style.display = 'flex';
+  sheet.style.animation = 'none';
+  backdrop.style.animation = 'none';
+  void sheet.offsetWidth;
+  void backdrop.offsetWidth;
+  sheet.style.animation = 'sheetSlideUp 0.4s cubic-bezier(0.34,1.2,0.64,1) forwards';
+  backdrop.style.animation = 'alertFadeIn 0.25s ease forwards';
 
   const now = new Date();
   const months = [
@@ -293,7 +340,13 @@ function confirmDate() {
 }
 
 function closeDatePicker() {
-  document.getElementById('datePicker').style.display = 'none';
+  const sheet = document.getElementById('datePickerSheet');
+  const backdrop = document.getElementById('datePickerBackdrop');
+  const picker = document.getElementById('datePicker');
+
+  sheet.style.animation = 'sheetSlideDown 0.3s ease forwards';
+  backdrop.style.animation = 'alertFadeOut 0.3s ease forwards';
+  setTimeout(() => { picker.style.display = 'none'; }, 300);
 }
 
 // food data
@@ -391,25 +444,25 @@ function renderTable() {
       borderRadius: '16px', padding: '8px', cursor: 'pointer', marginBottom: '4px'
     });
     delBtn.onclick = () => {
-  openAlert({
-    title: 'Delete Food',
-    msg: `Remove "${food.name}" from your list?`,
-    buttons: [
-      { label: 'Cancel', subtle: true },
-      {
-        label: 'Delete', bold: true,
-        action: () => {
-          haptic([20, 30, 20]);
-          const foods = getFoods();
-          localStorage.removeItem(`notified_${foods[index].name}_${foods[index].date}`);
-          foods.splice(index, 1);
-          saveFoods(foods);
-          renderTable();
-        }
-      }
-    ]
-  });
-};
+      openAlert({
+        title: 'Delete Food',
+        msg: `Remove "${food.name}" from your list?`,
+        buttons: [
+          { label: 'Cancel', subtle: true },
+          {
+            label: 'Delete', bold: true,
+            action: () => {
+              haptic([20, 30, 20]);
+              const foods = getFoods();
+              localStorage.removeItem(`notified_${foods[index].name}_${foods[index].date}`);
+              foods.splice(index, 1);
+              saveFoods(foods);
+              renderTable();
+            }
+          }
+        ]
+      });
+    };
     btnCell.appendChild(delBtn);
   });
 }
@@ -715,19 +768,14 @@ function greetUser() {
     hour < 21 ? 'Good Evening' :
     'Good Night';
 
-  const greetText = username
-    ? `${greeting},<br>${username}!`
-    : `${greeting}!`;
+  const greetText = username ? `${greeting},<br>${username}!` : `${greeting}!`;
 
   let isBusy = false;
 
   const fade = (content, delay) => setTimeout(() => {
     h1.style.transition = 'opacity 0.5s ease';
     h1.style.opacity = '0';
-    setTimeout(() => {
-      h1.innerHTML = content;
-      h1.style.opacity = '1';
-    }, 500);
+    setTimeout(() => { h1.innerHTML = content; h1.style.opacity = '1'; }, 500);
   }, delay);
 
   setTimeout(() => {
@@ -747,14 +795,11 @@ function greetUser() {
 
   const iconsAtOriginal = () => {
     const icons = document.querySelectorAll('.home-bg .material-symbols-outlined');
-    return [...icons].every(icon =>
-      !icon.dataset.original || icon.textContent.trim() === icon.dataset.original
-    );
+    return [...icons].every(icon => !icon.dataset.original || icon.textContent.trim() === icon.dataset.original);
   };
 
   const swapIcons = (to) => {
-    const icons = document.querySelectorAll('.home-bg .material-symbols-outlined');
-    icons.forEach((icon, i) => {
+    document.querySelectorAll('.home-bg .material-symbols-outlined').forEach((icon, i) => {
       setTimeout(() => {
         icon.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
         icon.style.transform = `rotate(var(--r, 0deg)) rotateY(90deg)`;
@@ -773,10 +818,7 @@ function greetUser() {
     const original = h1.innerHTML;
     h1.style.transition = 'opacity 0.3s ease';
     h1.style.opacity = '0';
-    setTimeout(() => {
-      h1.innerHTML = text;
-      h1.style.opacity = '1';
-    }, 300);
+    setTimeout(() => { h1.innerHTML = text; h1.style.opacity = '1'; }, 300);
     setTimeout(() => {
       h1.style.opacity = '0';
       setTimeout(() => {
@@ -793,12 +835,10 @@ function greetUser() {
 
   const isGreeting = () => {
     const current = h1.innerHTML;
-    return current.includes('Good Morning') ||
-           current.includes('Good Afternoon') ||
-           current.includes('Good Evening') ||
-           current.includes('Good Night');
+    return current.includes('Good Morning') || current.includes('Good Afternoon') ||
+           current.includes('Good Evening') || current.includes('Good Night');
   };
-  
+
   if (hour >= 0 && hour < 4) {
     setTimeout(() => {
       if (!isBusy) showMessage("Shouldn't you<br>be sleeping?", 'bedtime');
@@ -808,26 +848,19 @@ function greetUser() {
   if (navigator.getBattery) {
     navigator.getBattery().then(battery => {
       battery.addEventListener('chargingchange', () => {
-        if (battery.charging) {
-          showMessage('Yummy!', 'bolt');
-        } else {
-          const ouchIcon = battery.level * 100 > 20 ? 'error' : 'sentiment_very_dissatisfied';
-          showMessage('Ouch!', ouchIcon);
-        }
+        showMessage(battery.charging ? 'Yummy!' : 'Ouch!',
+          battery.charging ? 'bolt' : (battery.level * 100 > 20 ? 'error' : 'sentiment_very_dissatisfied'));
       });
-
       if (battery.charging) showMessage('Yummy!', 'bolt');
     });
   }
-  
+
   let idleTimer = null;
 
   const resetIdle = () => {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => {
-      if (!isBusy && iconsAtOriginal()) {
-        showMessage('Still there?', 'sentiment_calm');
-      }
+      if (!isBusy && iconsAtOriginal()) showMessage('Still there?', 'sentiment_calm');
     }, 120000);
   };
 
@@ -842,21 +875,15 @@ function greetUser() {
   const shakeStates = [
     { message: 'Hey, you made<br>me dizzy!', icon: 'sentiment_stressed' },
     { message: 'Stop itt!',                  icon: 'sentiment_neutral' },
-    { message: 'My "head" hurts<br>T-T',       icon: 'sick' },
+    { message: 'My "head" hurts<br>T-T',     icon: 'sick' },
   ];
 
   const handleShake = (force) => {
-    if (!shakeReady) return;
-    const now = Date.now();
-
-    if (isBusy) return;
-    if (!iconsAtOriginal()) return;
+    if (!shakeReady || isBusy || !iconsAtOriginal()) return;
     if (isGreeting() && force < 64) return;
 
-    if (now - lastShake > 1500) {
-      shakeCount = 0;
-    }
-
+    const now = Date.now();
+    if (now - lastShake > 1500) shakeCount = 0;
     shakeCount++;
     lastShake = now;
 
@@ -864,7 +891,6 @@ function greetUser() {
     shakeWindowTimer = setTimeout(() => { shakeCount = 0; }, 1500);
 
     if (shakeCount < 3) return;
-
     shakeCount = 0;
     clearTimeout(shakeWindowTimer);
 
@@ -872,10 +898,7 @@ function greetUser() {
     shakeIndex = (shakeIndex + 1) % shakeStates.length;
 
     showMessage(message, icon);
-    
-    if (navigator.vibrate) {
-      navigator.vibrate([32, 30, 48]);
-    }
+    if (navigator.vibrate) navigator.vibrate([32, 30, 48]);
   };
 
   function onMotion(e) {
@@ -1133,7 +1156,7 @@ function initTheme() {
 }
 
 function openThemeModal() {
-  openModal({ modalId: 'themeModal', boxId: 'themeBox', backdropId: 'themeBackdrop', hapticMs: 32 });
+  openModal({ modalId: 'themeModal', boxId: 'themeBox', backdropId: 'themeBackdrop' });
   const saved = localStorage.getItem('theme') || 'strawberry';
   document.querySelectorAll('.theme-check').forEach(el => el.classList.remove('visible'));
   document.getElementById(`check-${saved}`)?.classList.add('visible');
@@ -1224,8 +1247,7 @@ function applyFont(fontKey) {
 
 async function openFontModal() {
   const list = document.getElementById('fontList');
-
-  openModal({ modalId: 'fontModal', boxId: 'fontBox', backdropId: 'fontBackdrop', hapticMs: 32 });
+  openModal({ modalId: 'fontModal', boxId: 'fontBox', backdropId: 'fontBackdrop' });
 
   if (!allFontsLoaded) {
     list.style.cssText = 'opacity:0.4;pointer-events:none;transition:opacity 0.3s ease;';
@@ -1351,7 +1373,7 @@ document.getElementById('restoreBtn').onclick = () => {
 // credits
 
 function openCreditsModal() {
-  openModal({ modalId: 'creditsModal', boxId: 'creditsBox', backdropId: 'creditsBackdrop', hapticMs: 32 });
+  openModal({ modalId: 'creditsModal', boxId: 'creditsBox', backdropId: 'creditsBackdrop' });
 }
 
 function closeCreditsModal() {
@@ -1369,19 +1391,246 @@ function openLinkAlert(name, url) {
   });
 }
 
+// feeds
+
+function applyFeedToggle() {
+  const enabled = localStorage.getItem('feedEnabled') === 'true';
+  const btn = document.getElementById('feedNavBtn');
+  btn.style.display = enabled ? 'flex' : 'none';
+  if (!enabled && currentPage === 'feedpage') navigateTo('home');
+}
+
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function extractRssImage(item) {
+  if (item.enclosure?.link) return item.enclosure.link;
+  if (item['media:content']?.url) return item['media:content'].url;
+  if (item['media:thumbnail']?.url) return item['media:thumbnail'].url;
+  const imgMatch = (item.content || item.description || '').match(/<img[^>]+src=["']([^"']+)["']/i);
+  return imgMatch ? imgMatch[1] : null;
+}
+
+function stripHtml(html) {
+  return (html || '').replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').trim();
+}
+
+const FEED_CACHE_KEY = 'feedCache_v1';
+
+function getCachedPosts() {
+  try { return JSON.parse(localStorage.getItem(FEED_CACHE_KEY)); } catch { return null; }
+}
+
+function cachePosts(posts) {
+  try { localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(posts)); } catch {}
+}
+
+function clearFeedCache() {
+  localStorage.removeItem(FEED_CACHE_KEY);
+}
+
+function mergeAndDedupe(cached, fresh) {
+  const seen = new Set(cached.map(p => p.link));
+  const merged = [...cached];
+  fresh.forEach(p => { if (!seen.has(p.link)) merged.push(p); });
+  merged.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  return merged;
+}
+
+function openFeedDetail(post) {
+  haptic(32);
+  const detail = document.getElementById('feedDetail');
+  const body = stripHtml(post.content || post.description || '');
+  const paragraphs = body.split(/\n{2,}/).filter(Boolean).slice(0, 8).map(p => `<p>${p}</p>`).join('');
+
+  detail.innerHTML = `
+    <div class="feed-detail-bar">
+      <button class="feed-back-btn" onclick="closeFeedDetail()">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <span class="feed-detail-bar-title">Post</span>
+    </div>
+    <div class="feed-detail-body">
+      ${post.imgUrl ? `<div class="feed-detail-img"><img src="${post.imgUrl}" alt="" onerror="this.parentElement.remove()"></div>` : ''}
+      <div class="feed-detail-meta">
+        <span class="feed-tag">${post.source}</span>
+        <span class="feed-time">${post.author || ''}</span>
+        <span class="feed-time">${timeAgo(post.pubDate)}</span>
+      </div>
+      <div class="feed-detail-title">${post.title}</div>
+      ${paragraphs
+        ? `<div class="feed-detail-text">${paragraphs}</div>`
+        : post.link
+          ? `<a href="${post.link}" target="_blank" rel="noopener" class="feed-detail-link"><span class="material-symbols-outlined">link</span>${post.link.replace(/^https?:\/\//, '').slice(0, 55)}…</a>`
+          : `<p class="feed-detail-empty">No text content.</p>`
+      }
+      ${post.link ? `<a href="${post.link}" target="_blank" rel="noopener" class="feed-detail-link" style="margin-top:.5rem"><span class="material-symbols-outlined">open_in_new</span>Read full article</a>` : ''}
+    </div>
+  `;
+
+  detail.classList.add('open');
+}
+
+function closeFeedDetail() {
+  haptic(22);
+  document.getElementById('feedDetail').classList.remove('open');
+}
+
+function showFeedSkeleton() {
+  document.getElementById('feedList').innerHTML = Array.from({ length: 5 }, () => `
+    <div class="feed-skel-card">
+      <div class="feed-skel feed-skel-img"></div>
+      <div class="feed-skel feed-skel-title"></div>
+      <div class="feed-skel feed-skel-title2"></div>
+      <div class="feed-skel feed-skel-meta"></div>
+    </div>
+  `).join('');
+}
+
+function renderPosts(posts) {
+  const list = document.getElementById('feedList');
+  list.innerHTML = '';
+  posts.forEach((post, i) => {
+    const card = document.createElement('div');
+    card.className = 'feed-card' + (i === 0 ? ' feed-card-featured' : '');
+    card.style.animationDelay = `${i * 35}ms`;
+    card.onclick = () => openFeedDetail(post);
+    card.innerHTML = `
+      ${post.imgUrl ? `<div class="feed-card-img"><img src="${post.imgUrl}" alt="" loading="lazy" onerror="this.parentElement.remove()"></div>` : ''}
+      <span class="feed-card-index">${String(i + 1).padStart(2, '0')}</span>
+      <div class="feed-card-title">${post.title}</div>
+      <div class="feed-card-footer">
+        <div class="feed-card-meta">
+          <span class="feed-tag">${post.source}</span>
+          <span class="feed-time">${timeAgo(post.pubDate)}</span>
+        </div>
+        <span class="material-symbols-outlined feed-card-chevron">chevron_right</span>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+const RSS_FEEDS = [
+  { url: 'https://www.reddit.com/r/MinecraftFoodMemes/.rss', source: 'Minecraft Food Memes' },
+  { url: 'https://www.eatingwell.com/feed/', source: 'EatingWell' },
+  { url: 'https://nutritionfacts.org/feed/', source: 'NutritionFacts' },
+  { url: 'https://dontwastethecrumbs.com/feed/', source: 'Don\'t Waste the Crumbs' },
+  { url: 'https://www.skinnytaste.com/feed/', source: 'Skinnytaste' },
+];
+
+async function fetchRssFeed(feedInfo) {
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedInfo.url)}&api_key=&count=10`;
+  const res = await fetch(apiUrl, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error('bad status');
+  const json = await res.json();
+  if (json.status !== 'ok' || !json.items?.length) throw new Error('empty');
+  return json.items.map(item => ({
+    title: item.title || '',
+    link: item.link || '',
+    pubDate: item.pubDate || '',
+    author: item.author || '',
+    description: item.description || '',
+    content: item.content || item.description || '',
+    imgUrl: item.thumbnail || extractRssImage(item) || null,
+    source: feedInfo.source,
+  }));
+}
+
+const feedErrorHTML = (retry = 'loadFeed(true)') => `
+  <div class="feed-error">
+    <span class="material-symbols-outlined">wifi_off</span>
+    <p>Couldn't load feed</p>
+    <button class="md-btn" style="width:auto;padding:.6rem 1.5rem" onclick="${retry}">Retry</button>
+  </div>
+`;
+
+let feedLoaded = false;
+
+async function loadFeed(forceRefresh = false) {
+  const refreshBtn = document.getElementById('feedRefreshBtn');
+  const setRefreshing = (state) => {
+    if (!refreshBtn) return;
+    refreshBtn.classList.toggle('spinning', state);
+    refreshBtn.disabled = state;
+  };
+
+  if (forceRefresh) {
+    clearFeedCache();
+    feedLoaded = false;
+    showFeedSkeleton();
+    setRefreshing(true);
+
+    let fresh = [];
+    const results = await Promise.allSettled(RSS_FEEDS.map(f => fetchRssFeed(f)));
+    results.forEach(r => { if (r.status === 'fulfilled') fresh = fresh.concat(r.value); });
+    setRefreshing(false);
+
+    if (!fresh.length) { document.getElementById('feedList').innerHTML = feedErrorHTML(); return; }
+    fresh.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    cachePosts(fresh);
+    feedLoaded = true;
+    renderPosts(fresh);
+    return;
+  }
+
+  const cached = getCachedPosts();
+  if (cached?.length) {
+    feedLoaded = true;
+    renderPosts(cached);
+    fetchFreshInBackground(cached);
+    return;
+  }
+
+  showFeedSkeleton();
+  setRefreshing(true);
+
+  let fresh = [];
+  const results = await Promise.allSettled(RSS_FEEDS.map(f => fetchRssFeed(f)));
+  results.forEach(r => { if (r.status === 'fulfilled') fresh = fresh.concat(r.value); });
+  setRefreshing(false);
+
+  if (!fresh.length) { document.getElementById('feedList').innerHTML = feedErrorHTML(); return; }
+  fresh.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  cachePosts(fresh);
+  feedLoaded = true;
+  renderPosts(fresh);
+}
+
+async function fetchFreshInBackground(cached) {
+  let fresh = [];
+  const results = await Promise.allSettled(RSS_FEEDS.map(f => fetchRssFeed(f)));
+  results.forEach(r => { if (r.status === 'fulfilled') fresh = fresh.concat(r.value); });
+  if (!fresh.length) return;
+  const merged = mergeAndDedupe(cached, fresh);
+  cachePosts(merged);
+  if (merged.length > cached.length) renderPosts(merged);
+}
+
 // init
 
 document.addEventListener('DOMContentLoaded', () => {
   renderTable();
   initDevsEasterEgg();
 
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      haptic(32);
+      navigateTo(btn.dataset.page);
+      if (btn.dataset.page === 'feedpage' && !feedLoaded) loadFeed();
+    });
+  });
+
   document.getElementById('timePickerCancel').onclick = () => closeTimePicker(false);
   document.getElementById('timePickerDone').onclick = () => closeTimePicker(true);
   document.getElementById('timePickerBackdrop').onclick = () => closeTimePicker(false);
-
-  document.querySelectorAll('.nav-item').forEach(btn => {
-    btn.addEventListener('click', () => { haptic(32); navigateTo(btn.dataset.page); });
-  });
 
   document.querySelectorAll('.md-btn').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); haptic(64); });
@@ -1414,6 +1663,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const neuralToggle = document.getElementById('neuralLearning');
   neuralToggle.checked = localStorage.getItem('neuralLearning') === 'true';
   neuralToggle.addEventListener('change', () => localStorage.setItem('neuralLearning', neuralToggle.checked));
+
+  const feedsToggle = document.getElementById('feeds');
+  feedsToggle.checked = localStorage.getItem('feedEnabled') === 'true';
+  applyFeedToggle();
+  feedsToggle.addEventListener('change', () => {
+    haptic(22);
+    localStorage.setItem('feedEnabled', feedsToggle.checked);
+    applyFeedToggle();
+  });
 
   document.getElementById('notifTimeDisplay').textContent = localStorage.getItem('notifTime') || '8:00 AM';
   const cloudId = localStorage.getItem('cloud_id') || '';
