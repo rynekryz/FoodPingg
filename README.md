@@ -46,7 +46,7 @@
 - etc.
 
 <div align="center">
-<strong>Made with ♥︎ by Zenlixir</strong><br/>
+<strong>Made with ♥︎ by Ryne</strong><br/>
 <sub>Forked from FoodPing by Izatifoodie</sub>
 </div>
 
